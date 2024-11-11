@@ -1,0 +1,134 @@
+#include <Arduino.h>
+#include <WiFiManager.h>
+#include "webServerAndSocket.h"
+#include <ArduinoJson.h>
+
+
+WiFiManager wifiManager;
+
+// Create an instance of WebServerAndSocketWrapper with HTTP port 80
+WebServerAndSocket webServerAndSocket(80);
+
+const int ledPin = LED_BUILTIN;  // Define the LED pin (built-in LED)
+
+// Define the WebSocket message handler function
+void handleWebSocketMessage(const String &message) {
+  // Print the received WebSocket message to Serial
+  Serial.println("Received WebSocket message: " + message);
+
+  // You can add custom handling logic here, e.g., toggle the LED based on the message
+  if (message == "toggle") {
+    digitalWrite(ledPin, !digitalRead(ledPin));  // Toggle LED state
+  }
+}
+
+void setup() {
+  // Initialize Serial communication
+  Serial.begin(115200);
+  delay(1000);  // Safety delay to ensure Serial is ready
+
+  pinMode(ledPin, OUTPUT);  // Set pin mode to OUTPUT for controlling LED
+
+  // Connect to Wi-Fi using WiFiManager (auto-connect)
+  bool is_wifi_connected = wifiManager.autoConnect();
+  if (!is_wifi_connected) {
+    // Failed to connect to Wi-Fi, ESP will reboot
+    Serial.println("Failed to connect to WiFi");
+  } else {
+    // Successfully connected to Wi-Fi
+    Serial.println("WiFi connected... :)");
+    digitalWrite(ledPin, HIGH);  // Turn on the LED to indicate success
+
+    // Set WebSocket message handler function to process incoming messages
+    webServerAndSocket.setMessageHandler(handleWebSocketMessage);
+    // Set the mDNS hostname for the device
+    webServerAndSocket.setMdnsName("s2mini");
+
+    // Define HTML content to be served when accessing the server
+    // const char* htmlContent = R"rawliteral(
+    // <html>
+    //   <head>
+    //     <title>ESP32 WebSocket Test</title>
+    //     <script>
+    //       // Create WebSocket connection to the ESP32 WebSocket server
+    //       const socket = new WebSocket('ws://' + window.location.hostname + '/ws');
+
+    //       // When the WebSocket connection is opened
+    //       socket.onopen = function(event) {
+    //         console.log('WebSocket is open now.');
+    //         document.getElementById('status').innerText = 'WebSocket connected';
+    //       };
+
+    //       // When a message is received from the WebSocket server
+    //       socket.onmessage = function(event) {
+    //         console.log('Message from server: ' + event.data);
+    //         document.getElementById('message').innerText = 'Message: ' + event.data;
+    //       };
+
+    //       // If WebSocket closes or encounters an error
+    //       socket.onclose = function(event) {
+    //         console.log('WebSocket is closed now.');
+    //         document.getElementById('status').innerText = 'WebSocket disconnected';
+    //       };
+
+    //       socket.onerror = function(event) {
+    //         console.error('WebSocket error:', event);
+    //       };
+
+    //       // Function to toggle the LED via WebSocket
+    //       function toggleLED() {
+    //         if (socket.readyState === WebSocket.OPEN) {
+    //           socket.send('toggle');  // Send the "toggle" message to the ESP32
+    //           document.getElementById('toggleButton').innerText = 'Toggling LED...';  // Button state change
+    //         } else {
+    //           alert('WebSocket is not connected');
+    //         }
+    //       }
+    //     </script>
+    //   </head>
+    //   <body>
+    //     <h1>ESP32 WebSocket Test</h1>
+    //     <div id="status">WebSocket status: Connecting...</div>
+    //     <div id="message">Message: Waiting for message...</div>
+
+    //     <!-- Toggle button to trigger the WebSocket message -->
+    //     <button id="toggleButton" onclick="toggleLED()">Toggle LED</button>
+    //   </body>
+    // </html>
+    // )rawliteral";
+// Auto-generated web_ui_assets.h by running gulp build
+
+    const char* web_ui = R"rawliteral(<html lang="en"> <head> <meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <meta name="color-scheme" content="light" /> <title>Bird Sound Monitoring Dashboard</title> <link href="https://cdn.jsdelivr.net/npm/beercss@3.7.12/dist/cdn/beer.min.css" rel="stylesheet"> <style>
+#canvasContainer { position: relative; width: 95%; height: 70%; /* padding-top: 50%; Adjust this value for your aspect ratio */ } #soundLevelCanvas { background-color: #222222; border: 1px solid black; position: relative; width: 90%; height: 100%; margin-left: 10%; } /* /////////////////////////// */ #yAxisLabels { position: absolute; left: -5px; /* Adjust for better visibility */ top: 0; height: 100%; display: flex; flex-direction: column; justify-content: space-between; } .yLabel { text-align: right; padding: 0 5px; /* Adjust padding for better readability */ } .text-center { text-align: center; } /* Green styling for Normal state */ .normal_colour { color: #28a745; font-weight: bold; } /* Red styling for Alert state */ .alert_colour { color: #dc3545; font-weight: bold; } #current-bot-token { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 55%; /* Adjust to fit the layout */ display: inline-block; }</style></head> <body class="dark"> <main class="responsive"> <h3 class="center-align">Bird Sound Monitoring Dashboard</h3> <div class="grid"> <!-- Each item spans 12 columns (full width) on small screens, 6 columns on medium screens, and 4 columns on large screens (for 3 items per row) --> <div class="s12 m12 l4"> <!-- SPL Meter Card --> <article> <!-- to be populated by JS --> <h6 class="center-align medium"> Realtime Sound Level <i class="extra">Volume_Up</i> </h6> <h2 id="sound-level" class="medium center-align">00 dB</h2> <p id="alert-message" class="alert_colour center-align"> Alert!!! | Sound level is below the threshold </p> </article> </div> <div class="s12 m12 l4"> <!-- dB Meter Graph Card --> <article class="no-padding medium"> <h5 class="center-align"> <i class="extra">graphic_eq</i> dB Meter Graph </h5> <div id="canvasContainer"> <canvas id="soundLevelCanvas"></canvas> <div id="yAxisLabels"> <!-- Y-axis labels will be populated here --> </div> </div> </article> </div> <div class="s12 m6 l4"> <!-- Network info Card --> <article id="network-details"> <h6 class="center-align medium">Network Details</h6> <table id="network-details-table" class="center-align"> <tbody> <!-- Rows will be populated by JavaScript --> </tbody> </table> </article> </div> <div class="s12 m6 l4"> <!-- Telegram bot config Card --> <article class="center-align" id="telegram-config"> <div> <h5><i class="extra">settings</i> Telegram Bot Alert Config</h5> <p> Note: Switch to enable/disable Telegram notification, add bot API token & group chat ID. </p> <!-- Toggle switch for enabling/disabling Telegram alerts --> <label class="switch icon"> <input type="checkbox" id="telegram_switch" onchange="setESP32Config('telegram_switch')"/> <span> <i>close</i> <i>done</i> </span> <span>Enable Telegram Bot Alert Message</span> </label> <!-- Section for API token --> <h6 class="medium center-align">Update API Token</h6> <div id="current-bot-token">Current Value:</div> <nav class="no-space"> <div class="max field border left-round"> <input type="text" id="bot_token" /> </div> <button class="large right-round" type="submit" onclick="setESP32Config('bot_token')" > Save </button> </nav> <!-- Section for Chat ID --> <h6 class="medium center-align">Update Chat ID</h6> <div id="current-chat-id">Current Value:</div> <nav class="no-space"> <div class="max field border left-round"> <input type="text" id="chat_id" /> </div> <button class="large right-round" type="submit" onclick="setESP32Config('chat_id')" > Save </button> </nav> </div> </article> </div> <div class="s12 m6 l4"> <article class="center-align"> <div> <h5><i class="extra">settings</i> Sound Monitoring Config</h5> <p> Note: config sound level threshold to send alert and how often to check for sound playing </p> <!-- Section for Alert Threshold Config --> <h6 class="medium center-align">Update Alert Threshold</h6> <div id="current-threshold">Current Value: -- dB</div> <nav class="no-space"> <div class="max field border left-round"> <input type="number" id="alert_threshold" placeholder="Threshold value (dB)" /> </div> <button class="large right-round" type="submit" onclick="setESP32Config('alert_threshold')" > Save </button> </nav> <!-- Section for Sound Check Interval Config --> <h6 class="medium center-align">Update Sound Check Interval</h6> <div id="current-interval">Current Value: -- seconds</div> <nav class="no-space"> <div class="max field border left-round"> <input type="number" id="sound_check_interval" placeholder="Interval in seconds" /> </div> <button class="large right-round" type="submit" onclick="setESP32Config('sound_check_interval')" > Save </button> </nav> </div> </article> </div> <div class="s12 m6 l4"> <article class="center-align"> <div> <h5><i class="extra">settings</i> MQTT Configuration</h5> <p> Note: Configure your MQTT server details and topics for sound monitoring. </p> <!-- Section for MQTT Server Config --> <h6 class="medium center-align">Update MQTT Server</h6> <div id="current-mqtt-server">Current Value: --</div> <nav class="no-space"> <div class="max field border left-round"> <input type="text" id="mqtt_server" placeholder="Enter new MQTT server" /> </div> <button class="large right-round" type="submit" onclick="setESP32Config('mqtt_server')" > Save </button> </nav> <!-- Section for MQTT Port Config --> <h6 class="medium center-align">Update MQTT Port</h6> <div id="current-mqtt-port">Current Value: --</div> <nav class="no-space"> <div class="max field border left-round"> <input type="number" id="mqtt_port" placeholder="Enter new MQTT port" /> </div> <button class="large right-round" type="submit" onclick="setESP32Config('mqtt_port') " > Save </button> </nav> <!-- Section for First Floor Sound MQTT Topic --> <h6 class="medium center-align"> Update Sound State Topic </h6> <div id="current-sound-topic"> Current Value: korngva/sound_monitor/first_floor/sound_state </div> <nav class="no-space"> <div class="max field border left-round"> <input type="text" id="sound_state_topic" placeholder="Enter new sound MQTT topic" /> </div> <button class="large right-round" type="submit" onclick="setESP32Config('sound_state_topic')" > Save </button> </nav> <!-- Section for LWT Topic --> <h6 class="medium center-align">Update LWT Topic</h6> <div id="current-lwt-topic"> Current Value: -- </div> <nav class="no-space"> <div class="max field border left-round"> <input type="text" id="lwt_topic" placeholder="Enter new LWT topic" /> </div> <button class="large right-round" type="submit" onclick="setESP32Config('lwt_topic')" > Save </button> </nav> </div> </article> </div> </div> <!--END div.grid --> </main> </body> <script>var gateway = `ws://${window.location.hostname}/ws`; var websocket; // Init web socket when the page loads window.addEventListener("load", onload); function onload(event) { initWebSocket(); } function initWebSocket() { console.log("Trying to open a WebSocket connection…"); websocket = new WebSocket(gateway); websocket.onopen = onOpen; websocket.onclose = onClose; websocket.onmessage = onMessage; } // When websocket is established function onOpen(event) { console.log("Connection opened"); console.log("sending get_sound_monitoring_config_json..."); //request json config from backend websocket.send("get_sound_monitoring_config_json"); websocket.send("get_mqtt_config_json"); websocket.send("get_telegram_config_json"); websocket.send("get_network_detail_config_json"); } function onClose(event) { console.log("Connection closed"); setTimeout(initWebSocket, 2000); } // Function that receives the message from the ESP32 with the configs function onMessage(event) { const config = JSON.parse(event.data); // Parse the received JSON data console.log(event.data); ////Check the type of data: e.g. sound_level, sound_monitoring_config if (config.type === "sound_level") { //update sound meter ui displaySoundLevelMeter(config); //console.log(config.soundLevel); } if (config.type === "sound_monitoring_config") { //update sound monitoring config ui // console.log("alert threshold value: "); // console.log(config.alert_threshold); // console.log("sound_check_interval: "); // console.log(config.sound_check_interval); displaySoundMonitoringConfig(config); } if (config.type === "sound_monitoring_config") { displaySoundMonitoringConfig(config); } if (config.type === "mqtt_config") { displayMqttConfig(config); } if (config.type === "telegram_config") { displayTelegramConfig(config); } if (config.type === "network_detail") { displayNetworkDetails(config); } } function displaySoundLevelMeter(config) { // Assuming these elements exist in the static HTML const soundLevelElement = document.getElementById("sound-level"); const alertMessageElement = document.getElementById("alert-message"); // Iterate over the keys in the config object Object.keys(config).forEach((key, index) => { if (index === 0) return; // Skip the first index (type indicator) if (key === "sound_level") { // Update the sound level display soundLevelElement.textContent = `${config[key]} dB`; updateSoundLevelGraph(config[key]); // Call to update the graph } else if ( key === "is_real_time_sound_level_below_threshold_alert_active" ) { // Update the alert message based on the sound level state if (config[key]) { alertMessageElement.textContent = "Alert!!! | Sound level is below the threshold"; alertMessageElement.classList.add("alert_colour"); alertMessageElement.classList.remove("normal_colour"); // Ensure normal class is removed } else { alertMessageElement.textContent = "Normal | Sound level is above the threshold"; alertMessageElement.classList.remove("alert_colour"); alertMessageElement.classList.add("normal_colour"); // Add a normal state class if needed } } else { // Optional: handle other keys if needed, but it's not necessary for this specific case console.log(`${key}: ${config[key]}`); // Log for other keys } }); } function displayNetworkDetails(config) { const tableBody = document.getElementById("network-details-table").querySelector("tbody"); // Clear existing rows tableBody.innerHTML = ""; // Iterate over the config object to add each key-value pair to the table Object.keys(config).forEach((key) => { // Skip "type" as it's just an identifier if (key === "type") return; const value = config[key]; const formattedKey = formatKey(key); // Optional function to format keys // Create table row const row = document.createElement("tr"); // Create and append table cells const keyCell = document.createElement("td"); keyCell.textContent = formattedKey; const valueCell = document.createElement("td"); valueCell.textContent = value; // Append cells to row, and row to table body row.appendChild(keyCell); row.appendChild(valueCell); tableBody.appendChild(row); }); } // Optional: function to format the key string to a more readable form function formatKey(key) { return key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()); } // Function to display Telegram configuration data function displayTelegramConfig(config) { console.log("displayTelegramConfig()"); console.log(config); // Set switch for Telegram alert const alertSwitch = document.getElementById("telegram_switch"); alertSwitch.checked = config.isSendTelegramMessageDirectly; // Set current bot token display and input placeholder document.getElementById("current-bot-token").textContent = `Current Value: ${config.botToken}`; document.getElementById("bot_token").placeholder = "Enter new API token"; // Set current chat ID display and input placeholder document.getElementById("current-chat-id").textContent = `Current Value: ${config.groupChatID}`; document.getElementById("chat_id").placeholder = "Enter new Chat ID"; // Optionally: Add event listeners to handle updates // alertSwitch.addEventListener("change", () => { // config.isSendTelegramMessageDirectly = alertSwitch.checked; // console.log("Telegram alert status updated:", config.isSendTelegramMessageDirectly); // }); } function displaySoundMonitoringConfig(config) { // Set current alert threshold display and input placeholder document.getElementById("current-threshold").textContent = `Current Value: ${config.alert_threshold} dB`; document.getElementById("alert_threshold").placeholder = "Enter new threshold value (dB)"; // Set current sound check interval display and input placeholder document.getElementById("current-interval").textContent = `Current Value: ${config.sound_check_interval_in_second} seconds`; document.getElementById("sound_check_interval").placeholder = "Enter new interval in seconds"; } function displayMqttConfig(config) { // Set current MQTT server display and input placeholder document.getElementById("current-mqtt-server").textContent = `Current Value: ${config.mqtt_server}`; document.getElementById("mqtt_server").placeholder = "Enter new MQTT server"; // Set current MQTT port display and input placeholder document.getElementById("current-mqtt-port").textContent = `Current Value: ${config.mqtt_port}`; document.getElementById("mqtt_port").placeholder = "Enter new MQTT port"; // Set current first floor sound MQTT topic display and input placeholder document.getElementById("current-sound-topic").textContent = `Current Value: ${config.sound_state_mqtt_topic}`; document.getElementById("sound_state_topic").placeholder = "Enter new sound state topic"; // Set current LWT topic display and input placeholder document.getElementById("current-lwt-topic").textContent = `Current Value: ${config.lwt_topic}`; document.getElementById("lwt_topic").placeholder = "Enter new LWT topic"; } // Function to update ESP config via WebSocket //get called by the many save btns function setESP32Config(configName) { let configInput = document.getElementById(configName); let newValue; // Check if the input is a checkbox or a regular input field //for using with checkbox if (configInput.type === "checkbox") { newValue = configInput.checked; // Use .checked for checkboxes } else { newValue = configInput.value; // Use .value for text inputs } // Create a message object const message = { action: "updateConfig", config: configName, value: newValue, }; //console.log(message); // Send the message over WebSocket if (websocket && websocket.readyState === WebSocket.OPEN) { websocket.send(JSON.stringify(message)); console.log(`Sent: ${JSON.stringify(message)}`); } else { console.error("WebSocket is not open. Cannot send message."); } } //-----------------Graph-------------------- // //-----------------Graph-------------------- // //-----------------Graph-------------------- // const canvas = document.getElementById("soundLevelCanvas"); const ctx = canvas.getContext("2d"); const MAX_VALUES = 100; // Maximum number of sound levels to display const dBRange = 120; // Set the range to maximum decibel value const soundLevels = new Array(MAX_VALUES).fill(0); // Initialize array with zeros let index = 0; // Current index for the circular buffer // Function to simulate updating sound level function updateSoundLevelGraph(newLevel) { soundLevels[index] = newLevel; // Add new sound level to the array index = (index + 1) % MAX_VALUES; // Update the index, wrapping around if necessary drawGraph(); // Redraw the graph } function drawGraph() { ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas // Set up the graph style ctx.strokeStyle = "blue"; // Color of the line ctx.lineWidth = 2; // Width of the line ctx.beginPath(); for (let i = 0; i < MAX_VALUES; i++) { // Calculate x position const xPos = (i / MAX_VALUES) * canvas.width + 5; // Calculate y position (inverted), using the dBRange const yPos = canvas.height - soundLevels[(index + i) % MAX_VALUES] * (canvas.height / dBRange); // Normalize to canvas height based on dB range if (i === 0) { ctx.moveTo(xPos, yPos); // Move to the first point } else { ctx.lineTo(xPos, yPos); // Draw line to the next point } } // Fill the area below the line ctx.lineTo(canvas.width, canvas.height); // Go to the bottom right corner ctx.lineTo(0, canvas.height); // Go to the bottom left corner ctx.closePath(); // Close the path // Set fill color and fill the area ctx.fillStyle = "rgba(0, 0, 255, 0.3)"; // Light blue fill color ctx.fill(); // Fill the area ctx.stroke(); // Render the line // Draw the latest sound level value to the right of the canvas const latestValue = soundLevels[(index - 1 + MAX_VALUES) % MAX_VALUES]; // Get the last sound level ctx.fillStyle = "red"; // Set text color ctx.font = "17px Tahoma"; // Set font size and family const textXPos = canvas.width - 50; // Position text towards the right side of the canvas const textYPos = canvas.height - 7; // Position text vertically in the middle of the canvas ctx.fillText(latestValue.toFixed(1), textXPos, textYPos); // Draw text to the right of the canvas // Draw Y-axis labels drawYAxisLabels(); } // Function to draw Y-axis labels for sound levels in dB function drawYAxisLabels() { const yAxisLabels = document.getElementById("yAxisLabels"); yAxisLabels.innerHTML = ""; // Clear existing labels const labelCount = 5; // Number of labels to display for (let i = labelCount; i >= 0; i--) { // Loop from labelCount to 0 const labelValue = i * (dBRange / labelCount); // Calculate dB value const labelDiv = document.createElement("div"); labelDiv.className = "yLabel"; labelDiv.textContent = labelValue.toFixed(0); // Add label to the Y-axis yAxisLabels.appendChild(labelDiv); // Append label to the container } } //-----------------END Graph-------------------- // //-----------------END Graph-------------------- // //-----------------END Graph-------------------- //</script></html>)rawliteral";
+
+
+    // Set the HTML content for the HTTP server
+    webServerAndSocket.setHtmlContent(web_ui);
+
+    // Initialize the WebSocket and HTTP server
+    webServerAndSocket.begin();
+  }
+}
+
+void loop() {
+  // Handle WebSocket and HTTP server requests in the background
+  webServerAndSocket.cleanupWebsocketClients();  // Clean up disconnected WebSocket clients
+
+  // Send a WebSocket message to all clients every 5 seconds
+  static unsigned long lastMessageTime = 0;
+  static int counter = 0;  // Counter variable to include in the message
+
+  if (millis() - lastMessageTime > 5000) {  // 5-second interval
+    // Create a message with the current counter value
+    String counterMessage = "Counter: " + String(counter);
+    // Send the message to all WebSocket clients
+    webServerAndSocket.notifyClients(counterMessage);
+
+    // Increment the counter for the next message
+    counter++;
+
+    // Update the last message time
+    lastMessageTime = millis();
+    Serial.println("Sending WebSocket message: " + counterMessage);  // Print the message to Serial
+  }
+}

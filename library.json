@@ -1,0 +1,20 @@
+{
+    "name": "webServerAndSocket",
+    "version": "1.0.0",
+    "description": "Wrapper for ESP32 webserver and websocket",
+    "keywords": "",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/chimeng62/webServerAndSocket.git"
+    },
+    "authors": [
+        {
+            "name": "Chimeng62",
+            "email": "chimeng62@gmail.com",
+            "maintainer": true
+        }
+    ],
+    "license": "MIT",
+    "frameworks": "arduino",
+    "platforms": "*"
+}
